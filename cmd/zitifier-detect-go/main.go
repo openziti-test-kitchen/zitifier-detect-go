@@ -140,7 +140,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "ERROR: cannot create output file: %v\n", err)
 			os.Exit(1)
 		}
-		defer out.Close()
+		defer func() {
+			if err := out.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: closing output file: %v\n", err)
+			}
+		}()
 	} else {
 		out = os.Stdout
 	}
@@ -177,10 +181,14 @@ func writeText(out *os.File, store *analyzer.Store, filesAnalyzed int) {
 		if c.Notes != "" {
 			line += fmt.Sprintf("  NOTES: %q", c.Notes)
 		}
-		fmt.Fprintln(out, line)
+		if _, err := fmt.Fprintln(out, line); err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: writing output: %v\n", err)
+		}
 	}
 	for _, s := range store.Skipped {
-		fmt.Fprintf(out, "SKIPPED: %s:%d — %s\n", s.File, s.Line, s.Reason)
+		if _, err := fmt.Fprintf(out, "SKIPPED: %s:%d — %s\n", s.File, s.Line, s.Reason); err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: writing output: %v\n", err)
+		}
 	}
 
 	counts := struct{ total, client, server, ambiguous int }{}
@@ -195,6 +203,8 @@ func writeText(out *os.File, store *analyzer.Store, filesAnalyzed int) {
 			counts.ambiguous++
 		}
 	}
-	fmt.Fprintf(out, "SUMMARY: %d candidates found (%d CLIENT, %d SERVER, %d AMBIGUOUS) in %d files\n",
-		counts.total, counts.client, counts.server, counts.ambiguous, filesAnalyzed)
+	if _, err := fmt.Fprintf(out, "SUMMARY: %d candidates found (%d CLIENT, %d SERVER, %d AMBIGUOUS) in %d files\n",
+		counts.total, counts.client, counts.server, counts.ambiguous, filesAnalyzed); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: writing output: %v\n", err)
+	}
 }

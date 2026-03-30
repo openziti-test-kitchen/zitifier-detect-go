@@ -85,8 +85,8 @@ func TestSkipsUnixSocket(t *testing.T) {
 
 	// unix socket must appear in skipped, not candidates.
 	for _, c := range report.Candidates {
-		if c.Pattern == "net.Dial" && c.Confidence != "" {
-			// check it's the tcp one, not unix
+		if c.Pattern == "net.Dial" {
+			_ = c // tcp candidate, not unix socket
 		}
 	}
 	unixSkipped := false
